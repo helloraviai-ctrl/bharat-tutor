@@ -1,0 +1,13 @@
+{
+  "name": "bharat-tutor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod",
+    "start": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.33.0"
+  }
+}

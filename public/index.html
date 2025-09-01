@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="hi"><head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Bharat Tutor — AI</title>
+  <link rel="stylesheet" href="./styles.css"/>
+</head><body>
+  <div class="page">
+    <header class="topbar"><div class="brand"><div class="logo">🇮🇳</div><div class="title">Bharat Tutor</div></div><div class="status"><span id="provider">Netlify Functions</span></div></header>
+    <main class="layout">
+      <aside class="panel">
+        <h3>Settings</h3>
+        <label class="lbl">System</label>
+        <textarea id="system" class="input" rows="6"></textarea>
+        <label class="lbl">Context (optional)</label>
+        <textarea id="context" class="input" rows="6" placeholder="Paste notes or definitions here…"></textarea>
+        <label class="cb"><input type="checkbox" id="tts" checked> Speak answers</label>
+        <label class="lbl">Voice</label>
+        <select id="voice" class="select"></select>
+      </aside>
+      <section class="chat">
+        <div id="messages" class="messages"></div>
+        <div class="composer">
+          <button id="mic" class="icon">🎤</button>
+          <textarea id="prompt" rows="2" placeholder="अपना प्रश्न लिखें…"></textarea>
+          <button id="send" class="send">Send ➤</button>
+        </div>
+      </section>
+    </main>
+    <footer class="footer"><span class="muted">Hindi first • 2-line English summary</span></footer>
+  </div>
+  <script type="module" src="./app.js"></script>
+</body></html>

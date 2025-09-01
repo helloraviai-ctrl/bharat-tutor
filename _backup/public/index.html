@@ -1,0 +1,65 @@
+<!doctype html>
+<title>Bharat Tutor — AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div class="page">
+<header class="topbar">
+<div class="brand">
+<div class="logo">🇮🇳</div>
+<div class="title">Bharat Tutor</div>
+</div>
+<div class="status"><span id="provider">—</span></div>
+</header>
+
+
+<main class="layout">
+<aside class="panel">
+<h3>Settings</h3>
+<label class="lbl">System</label>
+<textarea id="system" class="input" rows="6" placeholder="System instructions…"></textarea>
+
+
+<label class="lbl">Context (optional)</label>
+<textarea id="context" class="input" rows="6" placeholder="Paste notes, definitions, or excerpts here…"></textarea>
+
+
+<div class="row">
+<label class="cb"><input type="checkbox" id="hinglish" checked> Hindi first + short English summary</label>
+</div>
+
+
+<div class="row">
+<label class="lbl">Voice</label>
+<select id="voice" class="select"></select>
+<label class="cb"><input type="checkbox" id="tts" checked> Speak answers</label>
+</div>
+
+
+<div class="muted small">Tip: Pick a Hindi voice (e.g., “Google हिन्दी”).</div>
+</aside>
+
+
+<section class="chat">
+<div id="messages" class="messages"></div>
+<div class="composer">
+<button id="mic" title="Speak" class="icon">🎤</button>
+<textarea id="prompt" rows="2" placeholder="अपना प्रश्न लिखें… (e.g., कक्षा 10 गणित — त्रिकोणमिति)"></textarea>
+<button id="send" class="send">Send ➤</button>
+</div>
+</section>
+</main>
+
+
+<footer class="footer">
+<span class="muted">Made for India • Answers first in Hindi, then English summary</span>
+</footer>
+</div>
+
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
