@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Bharat Tutor — AI</title>
     <link rel="stylesheet" href="./styles.css" />
+
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+      window.MathJax = {
+        tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+        svg: { fontCache: 'global' },
+      };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   </head>
   <body>
     <div class="page">
@@ -28,13 +37,17 @@
             placeholder="Paste notes or definitions here…"
           ></textarea>
 
-          <label class="cb">
-            <input type="checkbox" id="tts" checked />
-            Speak answers
-          </label>
+          <div class="row">
+            <label class="cb">
+              <input type="checkbox" id="tts" />
+              Speak answers
+            </label>
+          </div>
 
-          <label class="lbl">Voice</label>
-          <select id="voice" class="select"></select>
+          <div class="row">
+            <label class="lbl">Voice</label>
+            <select id="voice" class="select"></select>
+          </div>
         </aside>
 
         <section class="chat">
@@ -44,7 +57,7 @@
             <textarea
               id="prompt"
               rows="2"
-              placeholder="अपना प्रश्न लिखें…"
+              placeholder="Type your question…"
             ></textarea>
             <button id="send" class="send">Send ➤</button>
           </div>
@@ -52,7 +65,7 @@
       </main>
 
       <footer class="footer">
-        <span class="muted">Hindi first • 2-line English summary</span>
+        <span class="muted">Hindi first • 2-line English summary • LaTeX math</span>
       </footer>
     </div>
 

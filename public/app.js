@@ -1,54 +1,93 @@
-// public/app.js (server-controlled system; no client "system" field)
+// public/app.js
+import { marked } from "https://cdn.jsdelivr.net/npm/marked/+esm";
+
 const $ = (s) => document.querySelector(s);
 
-// UI elements (no systemEl now)
+// UI elements
 const messages = $("#messages");
 const promptEl = $("#prompt");
 const contextEl = $("#context");
 const sendBtn = $("#send");
-const micBtn = $("#mic");        // kept for future STT
+const micBtn = $("#mic");
 const voiceSel = $("#voice");
 const tts = $("#tts");
 
-let history = [];
+// ── Chat memory (client-side). We'll include last N turns in the prompt we send.
+let history = []; // [{role:'user'|'assistant', content:string}]
+
+// Render a chat bubble with Markdown + MathJax
+function bubble(role, md) {
+  const d = document.createElement("div");
+  d.className = `msg ${role === "user" ? "user" : "bot"}`;
+
+  const roleEl = document.createElement("div");
+  roleEl.className = "role";
+  roleEl.textContent = role === "user" ? "You" : "Tutor";
+
+  const body = document.createElement("div");
+  // Render markdown to HTML
+  body.innerHTML = marked.parse(md || "");
+
+  d.appendChild(roleEl);
+  d.appendChild(body);
+  return d;
+}
+
+function render() {
+  messages.innerHTML = "";
+  for (const m of history.slice(-30)) {
+    messages.appendChild(bubble(m.role, m.content));
+  }
+  messages.scrollTop = messages.scrollHeight;
+  // Typeset math after DOM updates
+  window.MathJax?.typesetPromise?.();
+}
 
 function push(role, content) {
   history.push({ role, content });
   render();
 }
 
-function bubble(role, text) {
-  const d = document.createElement("div");
-  d.className = `msg ${role === "user" ? "user" : "bot"}`;
-  d.innerHTML = `
-    <div class="role" style="opacity:.7;font-size:12px;margin-bottom:4px">
-      ${role === "user" ? "आप" : "ट्यूटर"}
-    </div>
-    <div>${(text || "").replaceAll("<", "&lt;")}</div>
-  `;
-  return d;
-}
-
-function render() {
-  messages.innerHTML = "";
-  for (const m of history.slice(-30)) messages.appendChild(bubble(m.role, m.content));
-  messages.scrollTop = messages.scrollHeight;
+// Build a compact conversation context (last 6 turns) to send with the prompt
+function buildConversationContext(latestUserPrompt) {
+  const turns = history.slice(-6);
+  const lines = [];
+  for (const t of turns) {
+    if (!t.content) continue;
+    const prefix = t.role === "user" ? "User:" : "Tutor:";
+    // strip extra whitespace
+    lines.push(`${prefix} ${t.content}`.trim());
+  }
+  lines.push(`User: ${latestUserPrompt}`);
+  return lines.join("\n\n");
 }
 
 async function send() {
-  const prompt = (promptEl.value || "").trim();
-  if (!prompt) return;
+  const userPrompt = (promptEl.value || "").trim();
+  if (!userPrompt) return;
 
-  push("user", prompt);
+  // Push user bubble now
+  push("user", userPrompt);
   promptEl.value = "";
+
+  // Show placeholder assistant bubble
   push("assistant", "…");
+
+  // Compose context block for server — we pack chat memory into Context:
+  const chatMemory = buildConversationContext(userPrompt);
+  const ctxCombined = [contextEl.value?.trim(), chatMemory]
+    .filter(Boolean)
+    .join("\n\n---\n\n");
 
   try {
     const r = await fetch("/.netlify/functions/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      // 👇 send ONLY prompt + context (system is fixed on server)
-      body: JSON.stringify({ prompt, context: (contextEl.value || "").trim() }),
+      body: JSON.stringify({
+        prompt: userPrompt,
+        context: `Previous conversation (summarized):\n${chatMemory}\n\n` +
+                 (contextEl.value?.trim() ? `Extra notes:\n${contextEl.value.trim()}\n` : "")
+      }),
     });
 
     if (!r.ok) {
@@ -59,6 +98,7 @@ async function send() {
     const data = await r.json();
     const text = data.text || JSON.stringify(data, null, 2);
 
+    // Replace the "…" bubble with the real text
     const idx = history.findIndex((m) => m.role === "assistant" && m.content === "…");
     if (idx > -1) history[idx].content = text;
     render();
@@ -79,10 +119,10 @@ promptEl.addEventListener("keydown", (e) => {
   }
 });
 
-// ───────────── TTS (Text-to-Speech) ─────────────
+// ── TTS (speak toggle controls it)
 let voices = [];
 function loadVoices() {
-  voices = speechSynthesis.getVoices();
+  voices = window.speechSynthesis?.getVoices?.() || [];
   voiceSel.innerHTML = "";
   voices.forEach((v) => {
     const o = document.createElement("option");
@@ -95,8 +135,9 @@ function loadVoices() {
 }
 if ("speechSynthesis" in window) {
   loadVoices();
-  speechSynthesis.onvoiceschanged = loadVoices;
+  window.speechSynthesis.onvoiceschanged = loadVoices;
 }
+
 function speak(text) {
   if (!("speechSynthesis" in window)) return;
   const u = new SpeechSynthesisUtterance((text || "").replace(/\*|#/g, ""));
@@ -111,9 +152,51 @@ function speak(text) {
   u.rate = 1;
   u.pitch = 1;
   u.volume = 1;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
 }
 
-// (Optional) mic / STT wiring can be added later if needed
+// ── Mic / Speech-to-Text (works on HTTPS / Netlify)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = SR ? new SR() : null;
+let recOn = false;
+if (rec) {
+  rec.lang = "hi-IN";       // You can change to "en-IN" if you prefer
+  rec.interimResults = false;
+  rec.maxAlternatives = 1;
 
+  rec.onresult = (e) => {
+    const t = e.results?.[0]?.[0]?.transcript || "";
+    if (t) {
+      // Put transcript into the prompt input
+      promptEl.value = (promptEl.value + " " + t).trim();
+    }
+  };
+  rec.onend = () => {
+    recOn = false;
+    micBtn.textContent = "🎤";
+  };
+}
+
+micBtn.addEventListener("click", () => {
+  if (!rec) {
+    alert("Speech recognition not supported in this browser.");
+    return;
+  }
+  if (recOn) {
+    rec.stop();
+    recOn = false;
+    micBtn.textContent = "🎤";
+  } else {
+    recOn = true;
+    micBtn.textContent = "⏺";
+    try {
+      rec.start();
+    } catch {
+      // Some engines throw if called too quickly
+    }
+  }
+});
+
+// Initial render
+render();
