@@ -15,7 +15,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    // We only accept prompt + context from client; system is server-fixed
+    // Accept only prompt + context; system is fixed server-side
     const { prompt, context } = JSON.parse(event.body || "{}");
 
     if (!prompt || typeof prompt !== "string") {
@@ -27,14 +27,21 @@ exports.handler = async (event) => {
 
     const PROVIDER = (process.env.PROVIDER || "gemini").toLowerCase();
 
-    // 🔒 Fixed, server-side system prompt (not editable from UI)
+    // 🔒 Fixed, server-side system prompt
     const baseSystem =
-      "You are Bharat Tutor. First respond in clear, simple Hindi. Then add a 2-line English summary. Use concise, step-by-step reasoning for math and science. If there is a section starting with 'Context:' above, rely on it strongly. If not enough info, ask one short follow-up question. Keep answers to 8 bullets or fewer.";
+      "You are Bharat Tutor. First respond in clear, simple Hindi. Then add a 2-line English summary.\n" +
+      "Format your answer in clean Markdown with bullet points and line breaks. For math, use LaTeX inside $...$ (inline) or $$...$$ (block).\n" +
+      "Use concise, step-by-step reasoning for math and science. If there is a section starting with 'Context:' above, rely on it strongly. " +
+      "If not enough info, ask one short follow-up question. Keep answers to 8 bullets or fewer.";
 
-    const ctx = context && String(context).trim().length ? `Context:\n${String(context).trim()}\n\n` : "";
+    const ctx =
+      context && String(context).trim().length
+        ? `Context:\n${String(context).trim()}\n\n`
+        : "";
+
     const augmented = `${ctx}SYSTEM:\n${baseSystem}\n\nUSER:\n${prompt}`;
 
-    // ───────────────────────────────── GEMINI ─────────────────────────────────
+    // ─────────────────────────── GEMINI ───────────────────────────
     if (PROVIDER === "gemini") {
       const key = process.env.GEMINI_API_KEY;
       if (!key) {
@@ -43,7 +50,7 @@ exports.handler = async (event) => {
           headers: HEADERS,
           body: JSON.stringify({
             error: "GEMINI_API_KEY missing in Netlify environment",
-            hint: "Set Site settings → Environment variables → GEMINI_API_KEY, and PROVIDER=gemini, then redeploy."
+            hint: "Set Site settings → Environment variables → GEMINI_API_KEY and PROVIDER=gemini, then redeploy."
           })
         };
       }
@@ -57,17 +64,13 @@ exports.handler = async (event) => {
         body: JSON.stringify(body)
       });
 
-      // Handle non-200s gracefully
       if (!r.ok) {
         const errTxt = await r.text().catch(() => "");
         return { statusCode: r.status, headers: HEADERS, body: JSON.stringify({ error: "Gemini API error", detail: errTxt }) };
       }
 
       const data = await r.json();
-      const text =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        data?.text ||
-        "";
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || data?.text || "";
 
       return {
         statusCode: 200,
@@ -76,7 +79,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // ───────────────────────────────── COHERE ─────────────────────────────────
+    // ─────────────────────────── COHERE ───────────────────────────
     if (PROVIDER === "cohere") {
       const key = process.env.COHERE_API_KEY;
       if (!key) {
@@ -85,7 +88,7 @@ exports.handler = async (event) => {
           headers: HEADERS,
           body: JSON.stringify({
             error: "COHERE_API_KEY missing in Netlify environment",
-            hint: "Set Site settings → Environment variables → COHERE_API_KEY, and PROVIDER=cohere, then redeploy."
+            hint: "Set Site settings → Environment variables → COHERE_API_KEY and PROVIDER=cohere, then redeploy."
           })
         };
       }
@@ -112,10 +115,7 @@ exports.handler = async (event) => {
       }
 
       const data = await r.json();
-      const text =
-        data?.text ||
-        data?.message?.content?.[0]?.text ||
-        "";
+      const text = data?.text || data?.message?.content?.[0]?.text || "";
 
       return {
         statusCode: 200,
